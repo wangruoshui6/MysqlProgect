@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>企业信息管理系统</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; }
+        .container { max-width: 1200px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1, h2 { color: #333; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background-color: #f8f8f8; }
+        .actions button { margin-right: 5px; padding: 5px 10px; border: none; border-radius: 4px; cursor: pointer; }
+        .edit-btn { background-color: #4CAF50; color: white; }
+        .delete-btn { background-color: #f44336; color: white; }
+        .form-section { background-color: #fdfdfd; padding: 20px; border: 1px solid #eee; border-radius: 8px; margin-top: 20px; }
+        .form-section input { width: calc(100% - 22px); padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; }
+        .form-section button { width: 100%; padding: 10px; background-color: #008CBA; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
+        .grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>企业信息管理系统</h1>
+
+    <!-- 部门管理 -->
+    <section id="dept-management">
+        <h2>部门管理</h2>
+        <div class="form-section">
+            <input type="text" id="dept-name" placeholder="输入新部门名称">
+            <button onclick="addDept()">添加部门</button>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>部门名称</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="dept-table-body">
+                <!-- Data will be loaded here by JavaScript -->
+            </tbody>
+        </table>
+    </section>
+
+    <!-- 员工管理 (简化版) -->
+    <section id="emp-management" style="margin-top: 40px;">
+        <h2>员工管理</h2>
+        <!-- 员工表单较为复杂，此处简化为只读列表，增删改可通过接口测试工具或扩展此页面完成 -->
+
+        <!-- =====> 1. 在这里插入新的员工表单 <===== -->
+        <div class="form-section">
+            <h3>添加新员工</h3>
+            <div class="grid-container">
+                <input type="text" id="emp-username" placeholder="用户名">
+                <input type="text" id="emp-name" placeholder="姓名">
+                <input type="text" id="emp-phone" placeholder="手机号">
+                <input type="text" id="emp-position" placeholder="职位 (1-5的数字)">
+                <input type="text" id="emp-salary" placeholder="薪资">
+                <input type="text" id="emp-deptId" placeholder="部门ID">
+                <input type="date" id="emp-hireDate" placeholder="入职日期">
+                <select id="emp-gender">
+                    <option value="1">男</option>
+                    <option value="2">女</option>
+                </select>
+            </div>
+            <button onclick="addEmp()">确认添加员工</button>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>姓名</th>
+                    <th>用户名</th>
+                    <th>性别</th>
+                    <th>职位</th>
+                    <th>部门ID</th>
+                    <th>操作</th> <!-- <--- 1. 添加新的表头 -->
+                </tr>
+            </thead>
+            <tbody id="emp-table-body">
+                <!-- Data will be loaded here by JavaScript -->
+            </tbody>
+        </table>
+    </section>
+    
+    <!-- 工作经历管理 (简化版) -->
+    <section id="emp-expr-management" style="margin-top: 40px;">
+        <h2>工作经历</h2>
+        <!-- =====> 1. 在这里添加新的工作经历表单 <===== -->
+        <div class="form-section">
+            <h3>添加新工作经历</h3>
+            <div class="grid-container">
+                <input type="text" id="expr-empId" placeholder="员工ID">
+                <input type="text" id="expr-company" placeholder="公司名称">
+                <input type="text" id="expr-position" placeholder="职位">
+                <input type="text" id="expr-description" placeholder="工作描述">
+                <label>开始日期: <input type="date" id="expr-startDate"></label>
+                <label>结束日期: <input type="date" id="expr-endDate"></label>
+            </div>
+            <button onclick="addEmpExpr()">确认添加经历</button>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>员工ID</th>
+                    <th>公司</th>
+                    <th>职位</th>
+                    <th>开始日期</th>
+                    <th>结束日期</th>
+                    <th>操作</th> <!-- <--- 2. 添加新的表头 -->
+                </tr>
+            </thead>
+            <tbody id="emp-expr-table-body">
+                <!-- Data will be loaded here by JavaScript -->
+            </tbody>
+        </table>
+    </section>
+
+</div>
+
+<script>
+    const API_BASE = 'http://localhost:8080/api';
+
+    // ===================================
+    // 部门 (Dept) - 功能完整
+    // ===================================
+
+    // 加载部门
+    async function loadDepts() {
+        const response = await fetch(`${API_BASE}/dept`);
+        const depts = await response.json();
+        const tbody = document.getElementById('dept-table-body');
+        tbody.innerHTML = '';
+        depts.forEach(dept => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${dept.id}</td>
+                <td>${dept.name}</td>
+                <td class="actions">
+                    <button class="edit-btn" onclick="editDept(${dept.id}, '${dept.name}')">编辑</button>
+                    <button class="delete-btn" onclick="deleteDept(${dept.id})">删除</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    // 添加部门
+    async function addDept() {
+        const name = document.getElementById('dept-name').value;
+        if (!name) {
+            alert('部门名称不能为空');
+            return;
+        }
+        await fetch(`${API_BASE}/dept`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: name })
+        });
+        document.getElementById('dept-name').value = '';
+        loadDepts();
+    }
+
+    // 编辑部门
+    async function editDept(id, oldName) {
+        const newName = prompt('请输入新的部门名称:', oldName);
+        if (newName && newName !== oldName) {
+            await fetch(`${API_BASE}/dept`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: id, name: newName })
+            });
+            loadDepts();
+        }
+    }
+
+    // 删除部门
+    async function deleteDept(id) {
+        if (confirm(`确定要删除ID为 ${id} 的部门吗？`)) {
+            await fetch(`${API_BASE}/dept/${id}`, { method: 'DELETE' });
+            loadDepts();
+        }
+    }
+
+    // =====> 2. 在这里添加 addEmp 函数 <=====
+    async function addEmp() {
+        // 从表单获取所有输入值
+        const empData = {
+            username: document.getElementById('emp-username').value,
+            name: document.getElementById('emp-name').value,
+            phone: document.getElementById('emp-phone').value,
+            position: parseInt(document.getElementById('emp-position').value),
+            salary: parseInt(document.getElementById('emp-salary').value),
+            deptId: parseInt(document.getElementById('emp-deptId').value),
+            hireDate: document.getElementById('emp-hireDate').value,
+            gender: parseInt(document.getElementById('emp-gender').value),
+            password: '123456', // 默认密码
+            image: '' // 默认头像路径为空
+        };
+
+        // 简单的数据校验
+        if (!empData.username || !empData.name) {
+            alert('用户名和姓名不能为空！');
+            return;
+        }
+
+        // 发送POST请求到后端
+        await fetch(`${API_BASE}/emp`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(empData)
+        });
+
+        // 重新加载员工列表以显示新数据
+        loadEmps();
+
+        // （可选）清空输入框
+        document.getElementById('emp-username').value = '';
+        document.getElementById('emp-name').value = '';
+        // ... 其他输入框也可以清空
+    }
+
+
+    // ===================================
+    // 员工 (Emp) - 只读列表
+    // ===================================
+    async function loadEmps() {
+        const response = await fetch(`${API_BASE}/emp`);
+        const emps = await response.json();
+        const tbody = document.getElementById('emp-table-body');
+        tbody.innerHTML = '';
+        emps.forEach(emp => {
+            const tr = document.createElement('tr');
+            // 注意：我们把整行的数据都绑定到了编辑按钮上
+            tr.innerHTML = `
+                <td>${emp.id}</td>
+                <td>${emp.name}</td>
+                <td>${emp.username}</td>
+                <td>${emp.gender === 1 ? '男' : '女'}</td>
+                <td>${emp.position}</td>
+                <td>${emp.deptId}</td>
+                <td class="actions">
+                    <button class="edit-btn" onclick='editEmp(${JSON.stringify(emp)})'>编辑</button>
+                    <button class="delete-btn" onclick="deleteEmp(${emp.id}, '${emp.name}')">删除</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+    // 删除员工
+    async function deleteEmp(id, name) {
+        if (confirm(`确定要删除员工 "${name}" (ID: ${id}) 吗？`)) {
+            await fetch(`${API_BASE}/emp/${id}`, { method: 'DELETE' });
+            loadEmps(); // 重新加载列表
+        }
+    }
+
+    // 编辑员工
+    function editEmp(emp) {
+        // 使用 prompt 简单地获取用户输入，真实项目会用更复杂的弹窗表单
+        const newName = prompt('请输入新的姓名:', emp.name);
+        if (newName === null) return; // 用户点击了取消
+
+        const newSalary = prompt('请输入新的薪资:', emp.salary);
+        if (newSalary === null) return;
+
+        // 更新 emp 对象中的值
+        emp.name = newName;
+        emp.salary = Number(newSalary);
+
+        // 发送 PUT 请求到后端
+        fetch(`${API_BASE}/emp`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(emp) // 发送整个更新后的 emp 对象
+        }).then(response => {
+            if (response.ok) {
+                loadEmps(); // 成功后刷新列表
+            } else {
+                alert('更新失败！');
+            }
+        });
+    }
+
+
+
+
+
+    // ===================================
+    // 工作经历 (EmpExpr) - 只读列表
+    // ===================================
+    async function loadEmpExprs() {
+        const response = await fetch(`${API_BASE}/emp_expr`);
+        const exprs = await response.json();
+        const tbody = document.getElementById('emp-expr-table-body');
+        tbody.innerHTML = '';
+        exprs.forEach(expr => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${expr.id}</td>
+                <td>${expr.empId}</td>
+                <td>${expr.company}</td>
+                <td>${expr.position}</td>
+                <td>${expr.startDate ? new Date(expr.startDate).toLocaleDateString() : ''}</td>
+                <td>${expr.endDate ? new Date(expr.endDate).toLocaleDateString() : '至今'}</td>
+                <td class="actions">
+                    <button class="edit-btn" onclick='editEmpExpr(${JSON.stringify(expr)})'>编辑</button>
+                    <button class="delete-btn" onclick="deleteEmpExpr(${expr.id}, '${expr.company}')">删除</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    // 添加工作经历
+    async function addEmpExpr() {
+        const exprData = {
+            empId: Number(document.getElementById('expr-empId').value),
+            company: document.getElementById('expr-company').value,
+            position: document.getElementById('expr-position').value,
+            description: document.getElementById('expr-description').value,
+            startDate: document.getElementById('expr-startDate').value,
+            endDate: document.getElementById('expr-endDate').value || null // 如果为空，则发送null
+        };
+
+        if (!exprData.empId || !exprData.company) {
+            alert('员工ID和公司名称不能为空！');
+            return;
+        }
+
+        await fetch(`${API_BASE}/emp_expr`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(exprData)
+        });
+        loadEmpExprs();
+    }
+
+    // 删除工作经历
+    async function deleteEmpExpr(id, company) {
+        if (confirm(`确定要删除在 "${company}" 的这条工作经历吗？`)) {
+            await fetch(`${API_BASE}/emp_expr/${id}`, { method: 'DELETE' });
+            loadEmpExprs();
+        }
+    }
+
+    // 编辑工作经历
+    function editEmpExpr(expr) {
+        const newPosition = prompt('请输入新的职位:', expr.position);
+        if (newPosition === null) return;
+
+        expr.position = newPosition;
+
+        fetch(`${API_BASE}/emp_expr`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(expr)
+        }).then(response => {
+            if (response.ok) {
+                loadEmpExprs();
+            } else {
+                alert('更新失败！');
+            }
+        });
+    }
+
+
+    // 页面加载时自动加载所有数据
+    window.onload = () => {
+        loadDepts();
+        loadEmps();
+        loadEmpExprs();
+    };
+</script>
+
+</body>
+</html>
